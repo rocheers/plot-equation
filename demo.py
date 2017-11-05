@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import os
-import config as c
+
 
 sns.set_style('darkgrid')
+
+num_lines = 0
 
 def check_pattern(entries):
     """Find the pattern of the given data
@@ -26,12 +28,15 @@ def check_pattern(entries):
     Returns:
         how many piece(s) the data should be splitted into, int.
     """
+    global num_lines
     d = {}
     for n in entries:
         if n in d:
             d[n] += 1
         else:
             d[n] = 1
+
+    num_lines = len(d)
 
     if all(value == d[entries[0]] and value > 1 for value in d.values()):
         return d[entries[0]]
@@ -58,6 +63,10 @@ def read_input(path):
             values.append(unpacked[1:])
 
     num_slices = check_pattern(entries)
+    return entries, values, num_slices
+
+
+def data_gen(entries, values, num_slices):
     step = len(entries) // num_slices
     for i in range(num_slices):
         yield [[float(v) for v in one_list] for one_list in values[step * i:step * (i + 1)]]
@@ -150,19 +159,19 @@ def draw_plot(data, labels, titles, interval_x, interval_y=None, xy_labels=None,
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 2:
-        input_file = sys.argv[1]
-        assert os.path.isfile(
-            input_file), "The file you provide doesn't exist. Please check it again."
-        values = read_input(input_file)
+    from config import conf
 
-    elif len(sys.argv) == 1:
-        values = read_input(c.input_file)
+    assert os.path.isfile(conf['input_file']), "The file you provide doesn't exist. Please check it again."
 
-    if c.save_path:
-        assert (".png" == c.save_path[-4:]) or (".pdf" == c.save_path[-4:]), \
-            "The file extension you provide is not valid. Just accept \'.png\' and \'.pdf\'"
+    entries, values, num_slices = read_input(conf['input_file'])
+    values = data_gen(entries, values, num_slices)
 
-    draw_plot(values, c.labels, c.titles, c.interval_x, 
-              interval_y=c.interval_y, xy_labels=c.xy_labels,
-              orientation=c.orientation, one_plot=c.one_plot, save_path=c.save_path)
+    if conf['save_path']:
+        assert (".png" == conf['save_path'][-4:]) or (".pdf" == conf['save_path'][-4:]), "The file extension you provide is not valid. Just accept \'.png\' and \'.pdf\'"
+
+    assert num_lines == len(conf['labels']), "The number of labels don\'t fit."
+
+    draw_plot(values, conf['labels'], conf['titles'], conf['interval_x'],
+              interval_y=conf['interval_y'], xy_labels=conf['xy_labels'],
+              orientation=conf['orientation'], one_plot=conf['one_plot'],
+              save_path=conf['save_path'])
